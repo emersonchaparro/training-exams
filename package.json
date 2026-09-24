@@ -1,9 +1,9 @@
 {
-  "name": "manu-exams",
+  "name": "training-exams",
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://echaparroa-uniandes.github.io/manu-exams",
+  "homepage": "https://emersonchaparro.github.io/training-exams",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
