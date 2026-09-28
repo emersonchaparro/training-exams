@@ -30,7 +30,6 @@ function App() {
   const [csvData, setCsvData] = useState<CSVRow[]>([])
   const [chapters, setChapters] = useState<string[]>([])
   const [selectedChapters, setSelectedChapters] = useState<Set<string>>(new Set())
-  const [totalChapterQuestions, setTotalChapterQuestions] = useState<number>(5)
   const [generatedQuestions, setGeneratedQuestions] = useState<Question[]>([])
   const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([])
   const [isFinished, setIsFinished] = useState(false)
@@ -100,7 +99,7 @@ function App() {
       
       // Obtener preguntas aleatorias
       const shuffled = [...chapterQuestions].sort(() => 0.5 - Math.random())
-      const selected = shuffled.slice(0, Math.min(totalChapterQuestions, chapterQuestions.length))
+      const selected = shuffled.slice(0, chapterQuestions.length)
       
       // Formatear preguntas
       selected.forEach((row) => {
@@ -203,19 +202,8 @@ function App() {
               </Button>
             ))}
           </div>
-          
           {/* Paso 2: Cantidad de preguntas por capítulo */}
           <div className="flex items-center gap-4 mb-4">
-            <label className="font-medium">
-              Preguntas por capítulo:
-            </label>
-            <input
-              type="number"
-              min="1"
-              value={totalChapterQuestions}
-              onChange={(e) => setTotalChapterQuestions(parseInt(e.target.value) || 1)}
-              className="border rounded px-3 py-2 w-24"
-            />
             <Button
               onClick={generateQuestions}
               disabled={selectedChapters.size === 0}
