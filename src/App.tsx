@@ -5,6 +5,7 @@ import Papa from 'papaparse'
 
 interface CSVRow {
   capitulo: string
+  orden: string
   pregunta: string
   respuesta: string
   a: string
@@ -16,6 +17,7 @@ interface CSVRow {
 
 interface Question {
   capitulo: string
+  orden: string
   pregunta: string
   respuesta: string
   opciones: { key: string; text: string }[]
@@ -97,12 +99,8 @@ function App() {
       // Filtrar preguntas por capítulo
       const chapterQuestions = csvData.filter((row) => row.capitulo === chapter)
       
-      // Obtener preguntas aleatorias
-      const shuffled = [...chapterQuestions].sort(() => 0.5 - Math.random())
-      const selected = shuffled.slice(0, chapterQuestions.length)
-      
       // Formatear preguntas
-      selected.forEach((row) => {
+      chapterQuestions.forEach((row) => {
         const opciones = [
           { key: 'a', text: row.a },
           { key: 'b', text: row.b },
@@ -113,6 +111,7 @@ function App() {
         
         questions.push({
           capitulo: row.capitulo,
+          orden: row.orden,
           pregunta: row.pregunta,
           respuesta: row.respuesta,
           opciones,
@@ -120,9 +119,14 @@ function App() {
       })
     })
     
-    // Mezclar todas las preguntas
-    const shuffledQuestions = questions.sort(() => 0.5 - Math.random())
-    setGeneratedQuestions(shuffledQuestions)
+    const sortedQuestions = questions.sort((firstQuestion, secondQuestion) => {
+      const chapterOrder = firstQuestion.capitulo.localeCompare(secondQuestion.capitulo)
+
+      if (chapterOrder !== 0) return chapterOrder
+
+      return Number(firstQuestion.orden) - Number(secondQuestion.orden)
+    })
+    setGeneratedQuestions(sortedQuestions)
     setUserAnswers([])
     setIsFinished(false)
   }
@@ -248,14 +252,16 @@ function App() {
                     borderColor: isFinished && isCorrect === false ? '#ef4444' : undefined,
                   }}
                 >
-                  <div className="mb-2 text-sm text-gray-500">{question.capitulo}</div>
+                  <div className="mb-2 text-sm text-gray-500">
+                    {question.capitulo}-{question.orden}
+                  </div>
                   <h3
                     className="font-semibold mb-3"
                     style={{
                       color: isFinished && isCorrect === false ? '#ef4444' : undefined,
                     }}
                   >
-                    {index + 1}. {question.pregunta}
+                    {question.pregunta}
                   </h3>
                   
                   <div className="space-y-2">
