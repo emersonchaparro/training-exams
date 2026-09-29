@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ChangeEvent } from 'react'
 import './App.css'
 import { Button } from './components/ui/button'
 import Papa from 'papaparse'
@@ -28,8 +28,20 @@ interface UserAnswer {
   selectedAnswer: string
 }
 
+interface CSVFile {
+  name: string
+  data: CSVRow[]
+}
+
+const initialCsvFileNames = [
+  'git-calvin-rodrigues.csv',
+  'archivo-prueba.csv',
+]
+
 function App() {
   const [csvData, setCsvData] = useState<CSVRow[]>([])
+  const [csvFiles, setCsvFiles] = useState<CSVFile[]>([])
+  const [selectedFileName, setSelectedFileName] = useState('')
   const [chapters, setChapters] = useState<string[]>([])
   const [selectedChapters, setSelectedChapters] = useState<Set<string>>(new Set())
   const [generatedQuestions, setGeneratedQuestions] = useState<Question[]>([])
@@ -38,47 +50,57 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const setActiveCsvFile = (file: CSVFile) => {
+    setCsvData(file.data)
+    setSelectedFileName(file.name)
+    setChapters(Array.from(new Set(file.data.map((row) => row.capitulo))).sort())
+    setSelectedChapters(new Set())
+    setGeneratedQuestions([])
+    setUserAnswers([])
+    setIsFinished(false)
+    setError(null)
+  }
+
   // Cargar el archivo CSV
   useEffect(() => {
-    const csvUrl = `${import.meta.env.BASE_URL}training.csv`
-    console.log('Intentando cargar CSV desde:', csvUrl)
-    
-    fetch(csvUrl)
-      .then((response) => {
-        console.log('Response status:', response.status)
-        if (!response.ok) {
-          throw new Error(`Error HTTP: ${response.status}`)
-        }
-        return response.text()
-      })
-      .then((text) => {
-        console.log('CSV cargado, longitud:', text.length)
-        Papa.parse<CSVRow>(text, {
-          header: true,
-          skipEmptyLines: true,
-          complete: (result) => {
-            console.log('Datos parseados:', result.data.length, 'filas')
-            setCsvData(result.data)
-            // Obtener capítulos únicos
-            const uniqueChapters = Array.from(
-              new Set(result.data.map((row) => row.capitulo))
-            ).sort()
-            setChapters(uniqueChapters)
-            setLoading(false)
-          },
-          error: (error: Error) => {
-            console.error('Error al parsear CSV:', error)
-            setError(`Error al parsear CSV: ${error.message}`)
-            setLoading(false)
+    const loadCsvFile = (fileName: string): Promise<CSVFile> => {
+      const csvUrl = `${import.meta.env.BASE_URL}${fileName}`
+
+      return fetch(csvUrl)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`)
           }
+          return response.text()
         })
+        .then((text) => new Promise((resolve, reject) => {
+          Papa.parse<CSVRow>(text, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (result) => resolve({ name: fileName, data: result.data }),
+            error: reject,
+          })
+        }))
+    }
+
+    Promise.all(initialCsvFileNames.map(loadCsvFile))
+      .then((files) => {
+        setCsvFiles(files)
+        setActiveCsvFile(files[0])
+        setLoading(false)
       })
-      .catch((err) => {
-        console.error('Error al cargar CSV:', err)
-        setError(`Error al cargar el archivo: ${err.message}`)
+      .catch((err: Error) => {
+        console.error('Error al cargar los archivos CSV:', err)
+        setError(`Error al cargar los archivos: ${err.message}`)
         setLoading(false)
       })
   }, [])
+
+  const handleFileChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    const selectedFile = csvFiles.find((file) => file.name === event.target.value)
+
+    if (selectedFile) setActiveCsvFile(selectedFile)
+  }
 
   // Toggle de capítulo seleccionado
   const toggleChapter = (chapter: string) => {
@@ -186,13 +208,31 @@ function App() {
         <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg mb-4">
           <p className="font-semibold">Error:</p>
           <p>{error}</p>
-          <p className="text-sm mt-2">URL intentada: {import.meta.env.BASE_URL}training.csv</p>
+          <p className="text-sm mt-2">Archivos iniciales: {initialCsvFileNames.join(', ')}</p>
         </div>
       )}
       
       {/* Paso 1: Selección de capítulos */}
-      {!loading && !error && generatedQuestions.length === 0 && (
+      {!loading && generatedQuestions.length === 0 && (
         <div className="mb-8">
+          <div className="mb-6 flex flex-col gap-3">
+            <label htmlFor="csv-file" className="font-semibold">
+              Archivo de preguntas:
+            </label>
+            <select
+              id="csv-file"
+              value={selectedFileName}
+              onChange={handleFileChange}
+              className="border rounded px-3 py-2"
+              disabled={csvFiles.length === 0}
+            >
+              {csvFiles.map((file) => (
+                <option key={file.name} value={file.name}>
+                  {file.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <h2 className="text-xl font-semibold mb-4">1. Selecciona los capítulos:</h2>
           <div className="grid grid-cols-4 gap-2 mb-6">
             {chapters.map((chapter) => (
