@@ -35,7 +35,7 @@ interface CSVFile {
 
 const initialCsvFileNames = [
   'git-calvin-rodrigues.csv',
-  'archivo-prueba.csv',
+  'guia2.csv',
 ]
 
 function App() {
